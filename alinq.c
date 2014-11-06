@@ -5,6 +5,22 @@ zend_class_entry *alinq_class_ce;
 
 //zend class method[
 //首先，定义这个函数的C语言部分，不过这一次我们使用的是ZEND_METHOD
+
+
+ZEND_METHOD( alinq_class , ToArray )
+{
+    zval * dataSource;
+    zval * reArrVal;
+    zend_class_entry *ce;
+
+    ce = Z_OBJCE_P(getThis());
+
+    dataSource = zend_read_property(ce, getThis(), "dataSource", sizeof("dataSource")-1, 0 TSRMLS_DC);
+    reArrVal = dataSource;
+    zval_copy_ctor(reArrVal);
+    RETURN_ZVAL(reArrVal,1,1);
+}
+
 ZEND_METHOD( alinq_class , getArrayItem )
 {
     zval *data_array;
@@ -355,12 +371,13 @@ ZEND_METHOD( alinq_class , Average )
 }
 
 //排序
-zval* OrderFun(zval * obj,zend_fcall_info fci,zend_fcall_info_cache fci_cache,char *direction,long directionLen)
-{
-    reVal = GetApplicables(obj,fci,fci_cache,0,'object',sizeof('object'));
+// zval* OrderFun(zval * obj,zend_fcall_info fci,zend_fcall_info_cache fci_cache,char *direction,long directionLen)
+// {
+//     zval * reVal;
+//     reVal = GetApplicables(obj,fci,fci_cache,0,'object',sizeof('object'));
 
-    int sortType = 1;   //ALINQ_ORDER_TYPE_NUMERIC
-}    
+//     int sortType = 1;   //ALINQ_ORDER_TYPE_NUMERIC
+// }    
 
 //数组覆盖
 ZEND_METHOD( alinq_class , Concat )
@@ -445,7 +462,7 @@ ZEND_METHOD( alinq_class , GroupBy )
         MAKE_STD_ZVAL(item1);
         array_init(item1);
         item = &item1;
-        php_printf("step-\n");
+        // php_printf("step-\n");
         // if(count>0 && i>=count){        //只循环count次
         //     break;
         // }
@@ -561,6 +578,7 @@ void php_alinq_iterator_key(HashTable *arrht)
 zend_function_entry alinq_class_method[]=
 {
     ZEND_ME(alinq_class,    __construct,    NULL,   ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
+    ZEND_ME(alinq_class,    ToArray,  NULL,   ZEND_ACC_PUBLIC)
     ZEND_ME(alinq_class,    getArrayItem,  NULL,   ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
     ZEND_ME(alinq_class,    Instance,  NULL,   ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
     ZEND_ME(alinq_class,    ElementAt,  NULL,   ZEND_ACC_PUBLIC)
