@@ -713,3 +713,300 @@ zend_module_entry alinq_module_entry = {
 #ifdef COMPILE_DL_ALINQ
 ZEND_GET_MODULE(alinq)
 #endif
+
+
+
+
+
+
+/**
+ *  调用用户空间函数
+ */
+int walu_call_user_function(zval** retval, zval* obj, char* function_name, char* paras, ...){        //用于接收参数  
+     short int  paras_count = 0;  
+     zval***    parameters  = NULL;  
+     long       long_tmp;  
+     char       *string_tmp;  
+     zval       *zval_tmp;  
+     double     dou_tmp;  
+     int        i;         //仅与调用有关的变量  
+     int        fun_re, retval_is_null = 0;  
+     HashTable  *function_table;         //接收参数 
+
+    paras_count = strlen(paras);  
+    if(paras_count > 0)        {  
+        parameters = (zval***)emalloc(sizeof(zval**) * paras_count);  
+        va_list ap;  
+        va_start(ap,paras);  
+        for(i=0; i<paras_count; i++)                {  
+            parameters[i] = (zval**)emalloc(sizeof(zval*));  
+            switch(paras[i])                        {  
+                case 's':  
+                    MAKE_STD_ZVAL(*parameters[i]);  
+                    string_tmp = va_arg(ap, char*);  
+                    long_tmp   = va_arg(ap, long);    
+                    ZVAL_STRINGL(*parameters[i], string_tmp, long_tmp, 1);  
+                    break;  
+                case 'l':    
+                    MAKE_STD_ZVAL(*parameters[i]);  
+                    long_tmp = va_arg(ap, long);  
+                    ZVAL_LONG(*parameters[i], long_tmp);    
+                    break;                                 
+                case 'd':    
+                    MAKE_STD_ZVAL(*parameters[i]);  
+                    dou_tmp = va_arg(ap, double);  
+                    ZVAL_DOUBLE(*parameters[i], dou_tmp);  
+                    break;  
+                case 'n':  
+                    MAKE_STD_ZVAL(*parameters[i]);  
+                    ZVAL_NULL(*parameters[i]);  
+                    break;  
+                 case 'z':  
+                    zval_tmp = va_arg(ap, zval*);  
+                    *parameters[i] = zval_tmp;  
+                    break;  
+                 case 'b':    
+                    MAKE_STD_ZVAL(*parameters[i]);    
+                    ZVAL_BOOL(*parameters[i], (int)va_arg(ap, int));  
+                    break;  
+               default:  
+                    zend_error(E_ERROR, "Unsupported type:%c in walu_call_user_function", paras[i]);                                        
+                    return 0;  
+            }  
+        }  
+        va_end(ap);  
+    }         //构造参数执行call_user_function_ex    
+    zval *_function_name;  
+    MAKE_STD_ZVAL(_function_name);  
+    ZVAL_STRINGL(_function_name, function_name, strlen(function_name), 1);  
+    if(retval == NULL)        {  
+        retval_is_null = 1;  
+        retval = (zval**)emalloc(sizeof(zval*));  
+    }         //开始函数调用  
+    if(obj) {  
+        function_table = &Z_OBJCE_P(obj)->function_table;  
+    } else {  
+        function_table = (CG(function_table));  
+    }  
+    zend_fcall_info fci;  
+    fci.size            = sizeof(fci);  
+    fci.function_table  = function_table;  
+    fci.object_ptr      = obj ? obj : NULL;  
+    fci.function_name   = _function_name;  
+    fci.retval_ptr_ptr  = retval;  
+    fci.param_count     = paras_count;  
+    fci.params          = parameters;  
+    fci.no_separation   = 1;  
+    fci.symbol_table    = NULL;  
+    fun_re = zend_call_function(&fci, NULL TSRMLS_CC);         //函数调用结束。  
+    if(retval_is_null == 1)        {  
+        zval_ptr_dtor(retval);  
+        efree(retval);  
+    }  
+    zval_ptr_dtor(&_function_name);         //free掉parameter及其里面的每个元素zval**，及每个元素zval**对应的zval*        //对于传进来的zval，不进行free，由参数调用者自行free  
+    if(paras_count > 0)        {  
+        for(i=0; i<paras_count; i++)                {  
+            if(paras[i] != 'z')                        {  
+                    zval_ptr_dtor(parameters[i]);  
+            }  
+            efree(parameters[i]);  
+        }  
+        efree(parameters);  
+    }  
+    return fun_re;  
+}  
+
+//调用匿名函数
+int walu_call_anony_function(zval** retval, zval* obj, zend_fcall_info fci, char* paras, ...){        //用于接收参数  
+     short int  paras_count = 0;  
+     zval***    parameters  = NULL;  
+     long       long_tmp;  
+     char       *string_tmp;  
+     zval       *zval_tmp;  
+     double     dou_tmp;  
+     int        i;         //仅与调用有关的变量  
+     int        fun_re, retval_is_null = 0;  
+     HashTable  *function_table;         //接收参数 
+
+    paras_count = strlen(paras);  
+    if(paras_count > 0)        {  
+        parameters = (zval***)emalloc(sizeof(zval**) * paras_count);  
+        va_list ap;  
+        va_start(ap,paras);  
+        for(i=0; i<paras_count; i++)                {  
+            parameters[i] = (zval**)emalloc(sizeof(zval*));  
+            switch(paras[i])                        {  
+                case 's':  
+                    MAKE_STD_ZVAL(*parameters[i]);  
+                    string_tmp = va_arg(ap, char*);  
+                    long_tmp   = va_arg(ap, long);    
+                    ZVAL_STRINGL(*parameters[i], string_tmp, long_tmp, 1);  
+                    break;  
+                case 'l':    
+                    MAKE_STD_ZVAL(*parameters[i]);  
+                    long_tmp = va_arg(ap, long);  
+                    ZVAL_LONG(*parameters[i], long_tmp);    
+                    break;                                 
+                case 'd':    
+                    MAKE_STD_ZVAL(*parameters[i]);  
+                    dou_tmp = va_arg(ap, double);  
+                    ZVAL_DOUBLE(*parameters[i], dou_tmp);  
+                    break;  
+                case 'n':  
+                    MAKE_STD_ZVAL(*parameters[i]);  
+                    ZVAL_NULL(*parameters[i]);  
+                    break;  
+                 case 'z':  
+                    zval_tmp = va_arg(ap, zval*);  
+                    *parameters[i] = zval_tmp;  
+                    break;  
+                 case 'b':    
+                    MAKE_STD_ZVAL(*parameters[i]);    
+                    ZVAL_BOOL(*parameters[i], (int)va_arg(ap, int));  
+                    break;  
+               default:  
+                    zend_error(E_ERROR, "Unsupported type:%c in walu_call_user_function", paras[i]);                                        
+                    return 0;  
+            }
+        }  
+        va_end(ap);  
+    }         //构造参数执行call_user_function_ex    
+    // zval *_function_name;  
+    // MAKE_STD_ZVAL(_function_name);  
+    // ZVAL_STRINGL(_function_name, function_name, strlen(function_name), 1);  
+    // if(retval == NULL)        {  
+    //     retval_is_null = 1;  
+    //     retval = (zval**)emalloc(sizeof(zval*));  
+    // }         //开始函数调用  
+    // if(obj) {  
+    //     function_table = &Z_OBJCE_P(obj)->function_table;  
+    // } else {  
+    //     function_table = (CG(function_table));  
+    // }  
+    // zend_fcall_info fci;  
+    fci.size            = sizeof(fci);  
+    // fci.function_table  = function_table;  
+    // fci.object_ptr      = obj ? obj : NULL;  
+    // fci.function_name   = _function_name;  
+    fci.retval_ptr_ptr  = retval;  
+    fci.param_count     = paras_count;  
+    fci.params          = parameters;  
+    fci.no_separation   = 1;  
+    fci.symbol_table    = NULL;  
+    fun_re = zend_call_function(&fci, NULL TSRMLS_CC);         //函数调用结束。  
+    if(retval_is_null == 1)        {  
+        zval_ptr_dtor(retval);  
+        efree(retval);  
+    }  
+    // zval_ptr_dtor(&_function_name);         //free掉parameter及其里面的每个元素zval**，及每个元素zval**对应的zval*        //对于传进来的zval，不进行free，由参数调用者自行free  
+    if(paras_count > 0)        {  
+        for(i=0; i<paras_count; i++)                {  
+            if(paras[i] != 'z')                        {  
+                    zval_ptr_dtor(parameters[i]);  
+            }  
+            efree(parameters[i]);  
+        }  
+        efree(parameters);  
+    }  
+    return fun_re;  
+}  
+
+
+// ZEND_METHOD( alinq_class , GetApplicables )
+// void GetApplicables();
+/**
+ *  执行用户传入的闭包
+ */
+zval* GetApplicables(zval * obj,zend_fcall_info fci,zend_fcall_info_cache fci_cache,long count,char *aReturnType,long aReturnTypeLen)
+{
+ 
+    zend_class_entry *ce;
+    zval * dataSource;
+    zval * ALINQ_CLOSURE_RETURN_TYPE_BOOL;
+    zval * ALINQ_CLOSURE_RETURN_TYPE_OBJECT;
+    zval * resultArray,*returnObj;             //
+    MAKE_STD_ZVAL(resultArray);
+    array_init(resultArray);
+
+    ce = Z_OBJCE_P(obj);
+
+    zval *retval_ptr = NULL;
+    // zend_fcall_info fci;
+    // zend_fcall_info_cache fci_cache;
+
+    // long count;
+
+    HashTable *arrht;
+
+    // char *aReturnType;
+    // int aReturnTypeLen;
+
+    // if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "fl|s", &fci, &fci_cache, &count,&aReturnType,&aReturnTypeLen) == FAILURE) {
+    //     return;
+    // }
+
+    //取得数组
+    dataSource = zend_read_property(ce, obj, "dataSource", sizeof("dataSource")-1, 0 TSRMLS_DC);
+    ALINQ_CLOSURE_RETURN_TYPE_BOOL = zend_read_static_property(ce, "ALINQ_CLOSURE_RETURN_TYPE_BOOL", sizeof("ALINQ_CLOSURE_RETURN_TYPE_BOOL")-1, 0 TSRMLS_DC);
+    ALINQ_CLOSURE_RETURN_TYPE_OBJECT = zend_read_static_property(ce, "ALINQ_CLOSURE_RETURN_TYPE_OBJECT", sizeof("ALINQ_CLOSURE_RETURN_TYPE_OBJECT")-1, 0 TSRMLS_DC);
+
+
+    //循环数组元素
+
+    arrht = Z_ARRVAL_P(dataSource);
+
+    zval **tmpns;
+    int i;
+    i=0;
+    while (zend_hash_get_current_data(Z_ARRVAL_P(dataSource), (void **)&tmpns) == SUCCESS) {
+        char *key;
+        uint keylen;
+        ulong idx;
+        int type;
+        zval **ppzval, tmpcopy;
+        if(count>0 && i>=count){        //只循环count次
+            break;
+        }
+        type = zend_hash_get_current_key_ex(Z_ARRVAL_P(dataSource), &key, &keylen,&idx, 0, NULL);
+
+        //重新copy一个zval，防止破坏原数据
+        tmpcopy = **tmpns;
+        zval_copy_ctor(&tmpcopy);
+        INIT_PZVAL(&tmpcopy);
+         // convert_to_string(&tmpcopy);
+                
+        if( !strcmp(aReturnType,Z_STRVAL_P(ALINQ_CLOSURE_RETURN_TYPE_BOOL))  || NULL==aReturnType){
+            walu_call_anony_function(&retval_ptr, NULL, fci, "sz", key, keylen,&tmpcopy);
+            
+            if(Z_BVAL_P(retval_ptr)){   //匿名函数返回ture则保存数据，即通过匿名函数来筛选数据
+                //  php_printf("\nssss");
+                // PHPWRITE(Z_STRVAL(tmpcopy), sizeof(Z_STRVAL(tmpcopy)));
+
+                add_assoc_zval(resultArray, key, *tmpns);
+            }else{
+                // php_printf("\nxxxx");
+            }
+        }else{
+
+            walu_call_anony_function(&retval_ptr, NULL, fci, "sz", key, keylen,&tmpcopy);
+            // if(Z_BVAL_P(retval_ptr)){
+            //     php_printf("\nbad1"); 
+            // }    
+            add_assoc_zval(resultArray, key, retval_ptr);  
+        }
+        
+
+        /* Toss out old copy */
+        zval_dtor(&tmpcopy);
+
+
+
+        zend_hash_move_forward(Z_ARRVAL_P(dataSource));
+        i++;
+    }
+    walu_call_user_function(&returnObj, obj, "Instance", "z", resultArray);
+
+    // RETVAL_ZVAL(returnObj,1,0);
+    return returnObj;
+
+}   
